@@ -1,6 +1,6 @@
 # 📊 RELATÓRIO FINAL DE PROVISIONAMENTO TERRAFORM V2
 
-**Data:** $(date +"%d/%m/%Y %H:%M:%S")  
+**Data:** 13-Janeiro-2025 às 21:00:00  
 **Conta de Destino:** jeanbarreiros1981outlook.onmicrosoft.com  
 **Subscription:** Azure subscription 1 (6dd1ec24-1445-4b8a-a0c6-2fdc0f6f8964)  
 **Ambiente:** Homologação/Migração  
