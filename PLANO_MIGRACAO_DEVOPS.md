@@ -87,6 +87,151 @@ export TARGET_PROJECT='life-cycle'
 
 ---
 
+## 📊 Resumo Executivo
+
+| Fase | Status Atual | Ação Necessária | Prioridade | Tempo Estimado |
+|------|--------------|-----------------|------------|----------------|
+| **FASE 1** | 50% | Migrar conteúdo dos repositórios | 🔴 **CRÍTICA** | 30-60 min |
+| **FASE 2** | 87.5% | Criar Azure Subscription Connection | 🟡 **MÉDIA** | 10-15 min |
+| **FASE 5** | 0% | Validação completa | 🟢 **APÓS FASE 1** | 1-2 horas |
+
+**Progresso Atual:** ~70% concluído  
+**Progresso Após FASE 1:** ~85% concluído  
+**Progresso Após FASE 2:** ~95% concluído  
+**Progresso Final (com validação):** 100% concluído
+
+---
+
+## 🔄 Ordem Recomendada de Execução
+
+### 1. **FASE 1: Migração de Conteúdo dos Repositórios** 🔴 CRÍTICO
+
+**Por que primeiro:** É o bloqueador principal. Sem conteúdo nos repositórios, os pipelines não podem funcionar.
+
+**Como executar:**
+```bash
+cd scripts
+export AUTO_OVERWRITE='s'
+export TARGET_ORG_URL='https://dev.azure.com/ux-solutions/'
+export TARGET_PROJECT='life-cycle'
+./migrate-repositories.sh
+```
+
+**O que faz:**
+- Clona cada repositório da origem usando `git clone --mirror`
+- Faz push de todas as branches e tags para o destino
+- Usa `AUTO_OVERWRITE='s'` para sobrescrever repositórios vazios existentes
+
+**Tempo estimado:** 30-60 minutos (depende do tamanho dos repositórios)
+
+---
+
+### 2. **FASE 2: Completar Service Connections** 🟡 RECOMENDADO
+
+**Por que importante:** Alguns pipelines podem falhar sem a conexão Azure Resource Manager.
+
+**Como executar (manual):**
+
+1. **Criar Service Principal no Azure:**
+   ```bash
+   az ad sp create-for-rbac --name "AzureDevOps-ServiceConnection" \
+     --role contributor \
+     --scopes /subscriptions/b30da310-60fe-4d2b-9ac0-ec4ce87df6a3
+   ```
+
+2. **Criar Service Connection no Azure DevOps:**
+   - Portal: `https://dev.azure.com/ux-solutions/life-cycle/_settings/adminservices`
+   - Tipo: Azure Resource Manager
+   - Subscription: `Microsoft Azure - UX` (b30da310-60fe-4d2b-9ac0-ec4ce87df6a3)
+   - Service Principal: usar as credenciais criadas acima
+
+**Tempo estimado:** 10-15 minutos
+
+---
+
+### 3. **FASE 5: Validação Final** 🟢 APÓS FASE 1
+
+**Por que necessário:** Garantir que tudo funciona antes de considerar a migração concluída.
+
+**Como executar:**
+
+#### 3.1. Verificar Conteúdo dos Repositórios
+```bash
+# Para cada repositório, verificar:
+az repos show --repository {NomeRepo} --org https://dev.azure.com/ux-solutions/ --project life-cycle
+az repos ref list --repository {NomeRepo} --org https://dev.azure.com/ux-solutions/ --project life-cycle
+```
+
+#### 3.2. Testar Execução de Pipelines
+- Executar manualmente 1-2 pipelines de teste
+- Verificar se as Service Connections estão sendo encontradas
+- Validar se os builds/deploys funcionam
+
+#### 3.3. Validar Service Connections
+- Verificar se todas as 8 estão ativas
+- Testar conexão com o Container Registry
+- Testar conexão com a Subscription Azure
+
+#### 3.4. Documentar Diferenças
+- Criar documento com problemas encontrados
+- Listar pipelines que precisam ajustes
+- Documentar configurações adicionais necessárias
+
+**Tempo estimado:** 1-2 horas
+
+---
+
+## ⚠️ Observações Importantes
+
+### 1. **FASE 1 é Bloqueadora**
+- **Sem conteúdo nos repositórios, os pipelines não funcionam**
+- Esta é a ação mais crítica para alcançar 100%
+- Deve ser executada antes de qualquer validação
+
+### 2. **FASE 2 Pode Ser Feita Depois**
+- A Service Connection Azure RM é importante, mas não bloqueia completamente
+- Alguns pipelines podem falhar sem ela, mas outros funcionarão
+- Pode ser criada manualmente quando necessário
+
+### 3. **FASE 5 Deve Ser Feita Após FASE 1**
+- Não faz sentido validar pipelines sem código nos repositórios
+- A validação completa só é possível após migração do conteúdo
+- Use esta fase para identificar problemas antes do uso em produção
+
+### 4. **Dependências Entre Fases**
+- **Pipelines** dependem de **Service Connections** e **repositórios com conteúdo**
+- Execute na ordem: FASE 1 → FASE 2 → FASE 5
+- FASE 0, 3 e 4 já estão concluídas
+
+### 5. **Limpeza**
+- Use `scripts/cleanup-devops.sh` com cuidado - apaga tudo sem confirmação fácil
+- Não execute limpeza até ter certeza de que a migração está completa
+
+---
+
+## ✅ Conclusão
+
+Para alcançar **100% de conclusão** da migração DevOps:
+
+1. ✅ **Executar FASE 1** (migração de conteúdo dos repositórios) - **CRÍTICO**
+   - Esta é a ação mais importante e bloqueadora
+   - Sem ela, os pipelines não podem funcionar
+   - Após esta fase, o progresso geral será ~85%
+
+2. ✅ **Completar FASE 2** (Service Connection Azure RM) - **RECOMENDADO**
+   - Necessária para pipelines que fazem deploy no Azure
+   - Pode ser feita manualmente quando necessário
+   - Após esta fase, o progresso geral será ~95%
+
+3. ✅ **Executar FASE 5** (validação final) - **APÓS FASE 1**
+   - Garante que tudo funciona antes de considerar concluído
+   - Identifica problemas antes do uso em produção
+   - Após esta fase, o progresso geral será **100%**
+
+**Próximo passo imediato:** Executar a FASE 1 (migração de conteúdo dos repositórios).
+
+---
+
 ## 📁 Estrutura do Projeto
 
 ```
@@ -137,38 +282,13 @@ pipelines/
 
 ## 📊 Inventário
 
-- **Pipelines:** 17
+- **Pipelines:** 17 (17/17 criados no destino)
 - **Repositórios:** 17 (origem) / 18 (destino - inclui repositório padrão do projeto)
-- **Service Connections:** 8 identificadas (serão criadas no destino)
+- **Service Connections:** 7/8 criadas no destino (7 Docker Registry, 1 Azure RM pendente)
 - **Variable Groups:** 0 (nenhuma encontrada)
 
 ---
 
-## ⚠️ Observações Importantes
-
-1. **Repositórios:** Foram criados no destino, mas conteúdo não foi migrado. Executar migração forçada.
-
-2. **Service Connections:** 
-   - ⭐ **NOVA ABORDAGEM**: Criar novas credenciais no destino
-   - Apontar para recursos do destino (UXREGISTRY2026, Subscription destino)
-   - Todas as credenciais serão documentadas automaticamente
-
-3. **Pipelines:** Dependem de Service Connections e repositórios com conteúdo. Executar na ordem correta.
-
-4. **Limpeza:** Use `scripts/cleanup-devops.sh` com cuidado - apaga tudo sem confirmação fácil.
-
----
-
-## 🔄 Ordem de Execução Recomendada
-
-1. ✅ FASE 0: Preparação - **CONCLUÍDA**
-2. ⚠️ FASE 1: Migrar conteúdo dos repositórios - **PENDENTE** (repositórios criados, conteúdo não migrado)
-3. ✅ FASE 2: Criar Service Connections - **CONCLUÍDA** (7/8 criadas)
-4. ✅ FASE 3: Variable Groups - **CONCLUÍDA** (nenhuma encontrada)
-5. ✅ FASE 4: Migrar pipelines - **CONCLUÍDA** (17/17 criados)
-6. ⏳ FASE 5: Validação - **PENDENTE**
-
----
 
 ## 🔐 Nova Abordagem: Service Connections
 
